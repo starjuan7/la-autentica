@@ -1,0 +1,55 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "usuarios": {
+      ".read": "auth != null && (auth.uid === 'CIapCOxKFeVvbSbhP9qEoXx0dWE3' || auth.uid === 'YCymphFfszgTaKzHudpbxdjhXn13' || (root.child('usuarios').child(auth.uid).child('rol').val() === 'admin' && root.child('usuarios').child(auth.uid).child('activo').val() !== false))",
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && (auth.uid === 'CIapCOxKFeVvbSbhP9qEoXx0dWE3' || auth.uid === 'YCymphFfszgTaKzHudpbxdjhXn13' || (root.child('usuarios').child(auth.uid).child('rol').val() === 'admin' && root.child('usuarios').child(auth.uid).child('activo').val() !== false))"
+      }
+    },
+    "marca": {
+      ".read": "auth != null",
+      ".write": "auth != null && (auth.uid === 'CIapCOxKFeVvbSbhP9qEoXx0dWE3' || auth.uid === 'YCymphFfszgTaKzHudpbxdjhXn13' || (root.child('usuarios').child(auth.uid).child('rol').val() === 'admin' && root.child('usuarios').child(auth.uid).child('activo').val() !== false))"
+    },
+    "plazas": {
+      "$plaza": {
+        ".validate": "$plaza === 'puebla' || $plaza === 'acapulco'",
+        ".read": "(auth != null && (auth.uid === 'CIapCOxKFeVvbSbhP9qEoXx0dWE3' || auth.uid === 'YCymphFfszgTaKzHudpbxdjhXn13' || (root.child('usuarios').child(auth.uid).child('rol').val() === 'admin' && root.child('usuarios').child(auth.uid).child('activo').val() !== false))) || (auth != null && root.child('usuarios').child(auth.uid).child('activo').val() !== false && root.child('usuarios').child(auth.uid).child('rol').val() === 'empleado' && (!root.child('usuarios').child(auth.uid).child('plazaRestricta').exists() || root.child('usuarios').child(auth.uid).child('plazaRestricta').val() === $plaza))",
+        "config": {
+          ".write": "auth != null && (auth.uid === 'CIapCOxKFeVvbSbhP9qEoXx0dWE3' || auth.uid === 'YCymphFfszgTaKzHudpbxdjhXn13' || (root.child('usuarios').child(auth.uid).child('rol').val() === 'admin' && root.child('usuarios').child(auth.uid).child('activo').val() !== false))"
+        },
+        "sabores": {
+          ".write": "(auth != null && (auth.uid === 'CIapCOxKFeVvbSbhP9qEoXx0dWE3' || auth.uid === 'YCymphFfszgTaKzHudpbxdjhXn13' || (root.child('usuarios').child(auth.uid).child('rol').val() === 'admin' && root.child('usuarios').child(auth.uid).child('activo').val() !== false))) || ((auth != null && root.child('usuarios').child(auth.uid).child('activo').val() !== false && root.child('usuarios').child(auth.uid).child('rol').val() === 'empleado' && (!root.child('usuarios').child(auth.uid).child('plazaRestricta').exists() || root.child('usuarios').child(auth.uid).child('plazaRestricta').val() === $plaza)) && root.child('usuarios').child(auth.uid).child('permisos').child('catalogo').val() === true)"
+        },
+        "inventario": {
+          ".write": "(auth != null && (auth.uid === 'CIapCOxKFeVvbSbhP9qEoXx0dWE3' || auth.uid === 'YCymphFfszgTaKzHudpbxdjhXn13' || (root.child('usuarios').child(auth.uid).child('rol').val() === 'admin' && root.child('usuarios').child(auth.uid).child('activo').val() !== false))) || (auth != null && root.child('usuarios').child(auth.uid).child('activo').val() !== false && root.child('usuarios').child(auth.uid).child('rol').val() === 'empleado' && (!root.child('usuarios').child(auth.uid).child('plazaRestricta').exists() || root.child('usuarios').child(auth.uid).child('plazaRestricta').val() === $plaza))"
+        },
+        "pedidos": {
+          ".indexOn": [
+            "fecha"
+          ],
+          "$id": {
+            ".write": "(auth != null && (auth.uid === 'CIapCOxKFeVvbSbhP9qEoXx0dWE3' || auth.uid === 'YCymphFfszgTaKzHudpbxdjhXn13' || (root.child('usuarios').child(auth.uid).child('rol').val() === 'admin' && root.child('usuarios').child(auth.uid).child('activo').val() !== false))) || ((auth != null && root.child('usuarios').child(auth.uid).child('activo').val() !== false && root.child('usuarios').child(auth.uid).child('rol').val() === 'empleado' && (!root.child('usuarios').child(auth.uid).child('plazaRestricta').exists() || root.child('usuarios').child(auth.uid).child('plazaRestricta').val() === $plaza)) && newData.exists())"
+          }
+        },
+        "clientes": {
+          ".write": "(auth != null && (auth.uid === 'CIapCOxKFeVvbSbhP9qEoXx0dWE3' || auth.uid === 'YCymphFfszgTaKzHudpbxdjhXn13' || (root.child('usuarios').child(auth.uid).child('rol').val() === 'admin' && root.child('usuarios').child(auth.uid).child('activo').val() !== false))) || (auth != null && root.child('usuarios').child(auth.uid).child('activo').val() !== false && root.child('usuarios').child(auth.uid).child('rol').val() === 'empleado' && (!root.child('usuarios').child(auth.uid).child('plazaRestricta').exists() || root.child('usuarios').child(auth.uid).child('plazaRestricta').val() === $plaza))"
+        },
+        "historial": {
+          ".indexOn": [
+            "ts"
+          ],
+          ".write": "(auth != null && (auth.uid === 'CIapCOxKFeVvbSbhP9qEoXx0dWE3' || auth.uid === 'YCymphFfszgTaKzHudpbxdjhXn13' || (root.child('usuarios').child(auth.uid).child('rol').val() === 'admin' && root.child('usuarios').child(auth.uid).child('activo').val() !== false))) || (auth != null && root.child('usuarios').child(auth.uid).child('activo').val() !== false && root.child('usuarios').child(auth.uid).child('rol').val() === 'empleado' && (!root.child('usuarios').child(auth.uid).child('plazaRestricta').exists() || root.child('usuarios').child(auth.uid).child('plazaRestricta').val() === $plaza))"
+        },
+        "bitacora": {
+          ".indexOn": [
+            "ts"
+          ],
+          ".write": "(auth != null && (auth.uid === 'CIapCOxKFeVvbSbhP9qEoXx0dWE3' || auth.uid === 'YCymphFfszgTaKzHudpbxdjhXn13' || (root.child('usuarios').child(auth.uid).child('rol').val() === 'admin' && root.child('usuarios').child(auth.uid).child('activo').val() !== false))) || (auth != null && root.child('usuarios').child(auth.uid).child('activo').val() !== false && root.child('usuarios').child(auth.uid).child('rol').val() === 'empleado' && (!root.child('usuarios').child(auth.uid).child('plazaRestricta').exists() || root.child('usuarios').child(auth.uid).child('plazaRestricta').val() === $plaza))"
+        }
+      }
+    }
+  }
+}

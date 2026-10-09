@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0b0d10">
+<title>La Auténtica Acapulqueña · Gestión</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Sora:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+</head>
+<body>
+
+<!-- ============ INICIO DE SESIÓN ============ -->
+<div id="login" class="screen">
+  <div class="screen-card">
+    <div id="login-logo-wrap"></div>
+    <h1>La Auténtica Acapulqueña</h1>
+    <p class="sub">Sistema de gestión</p>
+    <div class="field"><label for="login-email">Correo</label><input type="email" id="login-email" autocomplete="username" onkeydown="if(event.key==='Enter')$('login-pass').focus()"></div>
+    <div class="field"><label for="login-pass">Contraseña</label><input type="password" id="login-pass" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <button class="btn btn-full" id="login-btn" onclick="doLogin()">Iniciar sesión</button>
+    <div class="login-err" id="login-err"></div>
+    <p style="text-align:center;margin-top:8px;"><a href="#" onclick="doForgot();return false;" style="color:var(--sky3);font-weight:600;font-size:.85rem;text-decoration:none;">Olvidé mi contraseña</a></p>
+  </div>
+</div>
+
+<!-- ============ ELEGIR PLAZA ============ -->
+<div id="plaza-pick" class="screen" hidden>
+  <div class="screen-card">
+    <div id="pick-logo-wrap"></div>
+    <h1>¿En qué plaza vas a trabajar?</h1>
+    <p class="sub">Cada plaza tiene su propio inventario, pedidos, clientes y ventas.</p>
+    <button class="plaza-opt" onclick="elegirPlaza('puebla')"><div class="dot">P</div><div><strong>Puebla</strong><span>Inventario, pedidos y ventas de Puebla</span></div></button>
+    <button class="plaza-opt" onclick="elegirPlaza('acapulco')"><div class="dot">A</div><div><strong>Acapulco</strong><span>Inventario, pedidos y ventas de Acapulco</span></div></button>
+    <p style="text-align:center;margin-top:10px;"><a href="#" onclick="logout();return false;" style="color:var(--mut);font-size:.82rem;">Cerrar sesión</a></p>
+  </div>
+</div>
+
+<!-- ============ APLICACIÓN ============ -->
+<div id="app" hidden>
+  <header class="topbar">
+    <div id="top-logo-wrap"></div>
+    <div class="ttl"><strong>La Auténtica Acapulqueña</strong><small id="top-user"></small></div>
+    <span class="sync off" id="sync" title="Sin conexión"></span>
+    <button class="plaza-chip" id="plaza-chip" onclick="cambiarPlaza()"></button>
+    <button class="icon-btn" onclick="logout()">Salir</button>
+  </header>
+  <nav class="tabs" id="tabs"></nav>
+
+  <main>
+
+    <!-- INICIO -->
+    <section class="tab" id="tab-dashboard">
+      <div id="d-esquemas-aviso"></div>
+      <div id="d-stock-alerta"></div>
+      <div class="grid4" style="margin-bottom:14px;">
+        <div class="stat"><b id="d-pedidos-hoy">0</b><span>Pedidos hoy</span></div>
+        <div class="stat hl"><b id="d-ventas-hoy">$0.00</b><span>Vendido hoy</span></div>
+        <div class="stat"><b id="d-pendientes">0</b><span>Por entregar</span></div>
+        <div class="stat"><b id="d-ventas-mes">$0.00</b><span>Vendido este mes</span></div>
+      </div>
+      <div class="card">
+        <h3>Próximos pedidos por entregar</h3>
+        <div id="d-lista"></div>
+        <div class="row-btns" style="margin-top:12px;">
+          <button class="btn btn-sky" onclick="showTab('nuevo')">Nuevo pedido</button>
+          <button class="btn btn-line" onclick="showTab('pedidos')">Ver todos los pedidos</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- PEDIDOS -->
+    <section class="tab" id="tab-pedidos">
+      <div class="card">
+        <h3>Pedidos</h3>
+        <div class="searchbar">
+          <input type="text" id="q-pedidos" placeholder="Buscar por cliente…" oninput="renderPedidos()">
+          <select id="f-status" onchange="renderPedidos()">
+            <option value="">Todos los estados</option>
+            <option value="pendiente">Pendientes</option>
+            <option value="listo">Listos</option>
+            <option value="entregado">Entregados</option>
+            <option value="cancelado">Cancelados</option>
+          </select>
+        </div>
+        <div id="pedidos-list"></div>
+      </div>
+    </section>
+
+    <!-- NUEVO PEDIDO -->
+    <section class="tab" id="tab-nuevo">
+      <div class="card">
+        <h3>Datos del cliente</h3>
+        <div class="field"><label for="cliente-select">Cliente registrado</label>
+          <select id="cliente-select" onchange="autoFillCliente(this.value)"><option value="">— Escribir manualmente —</option></select></div>
+        <div class="note" id="descuento-info" hidden></div>
+        <div class="grid2">
+          <div class="field"><label for="c-nombre">Nombre *</label><input type="text" id="c-nombre" autocomplete="off"></div>
+          <div class="field"><label for="c-tel">Teléfono</label><input type="tel" id="c-tel" inputmode="tel" placeholder="10 dígitos"></div>
+        </div>
+        <div class="grid2">
+          <div class="field"><label for="c-fecha">Fecha de entrega</label><input type="date" id="c-fecha"></div>
+          <div class="field"><label for="c-hora">Hora</label><input type="time" id="c-hora"></div>
+        </div>
+        <div class="field"><label for="c-nota">Nota</label><textarea id="c-nota" placeholder="Dirección, indicaciones, forma de pago…"></textarea></div>
+      </div>
+
+      <div class="rango-bar">
+        <div><small>Esquema aplicado</small><strong id="rango-name">—</strong></div>
+        <div style="text-align:right;"><small>Piezas</small><span class="big" id="rango-total">0 pzas</span></div>
+      </div>
+      <div class="esq-pills" id="esq-pills"></div>
+
+      <div class="card">
+        <h3>Sabores</h3>
+        <div class="searchbar"><input type="text" id="q-sabor" placeholder="Buscar sabor…" oninput="renderNuevo()"></div>
+        <div id="sabores-pedido"></div>
+      </div>
+
+      <div class="sticky-total">
+        <div class="sum"><b id="np-monto">$0.00</b> <span class="mut small" id="np-resumen"></span></div>
+        <button class="btn btn-sky" onclick="guardarPedido()">Guardar pedido</button>
+      </div>
+    </section>
+
+    <!-- INVENTARIO -->
+    <section class="tab" id="tab-inventario">
+      <div class="card">
+        <h3>Inventario <small id="inv-plaza"></small></h3>
+        <div id="inv-alerta"></div>
+        <div id="inv-stats" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;"></div>
+        <div class="searchbar">
+          <input type="text" id="q-inv" placeholder="Buscar sabor…" oninput="renderInventario()">
+          <select id="f-inv" onchange="renderInventario()">
+            <option value="todos">Todos</option><option value="ok">En stock</option><option value="bajo">Stock bajo</option><option value="out">Sin stock</option><option value="fuera">Fuera de menú</option>
+          </select>
+          <select id="s-inv" onchange="renderInventario()">
+            <option value="estado">Ordenar por estado</option><option value="alfa">Ordenar A–Z</option><option value="stock-asc">Menos stock primero</option><option value="stock-desc">Más stock primero</option>
+          </select>
+        </div>
+        <div class="row-btns" style="margin:0 0 8px;">
+          <button class="btn btn-line btn-sm" onclick="pdfInventario()">PDF de inventario</button>
+          <button class="btn btn-danger btn-sm admin-only" onclick="eliminarTodoInv()">Poner todo en cero</button>
+        </div>
+        <div id="inv-list"></div>
+      </div>
+      <div class="card">
+        <h3>Historial de movimientos</h3>
+        <div class="searchbar">
+          <div class="field" style="margin:0;"><label for="h-ini">Desde</label><input type="date" id="h-ini" onchange="renderHistorial()"></div>
+          <div class="field" style="margin:0;"><label for="h-fin">Hasta</label><input type="date" id="h-fin" onchange="renderHistorial()"></div>
+        </div>
+        <div id="hist-list"></div>
+      </div>
+    </section>
+
+    <!-- CATÁLOGO -->
+    <section class="tab" id="tab-catalogo">
+      <div class="card">
+        <h3>Catálogo de sabores <small id="cat-plaza"></small></h3>
+        <div class="searchbar">
+          <input type="text" id="q-cat" placeholder="Buscar sabor…" oninput="renderCatalogo()">
+        </div>
+        <div class="row-btns" style="margin:0 0 8px;">
+          <button class="btn btn-sky" onclick="openSabor()">Nuevo sabor</button>
+          <button class="btn btn-line" onclick="importarSabores()">Importar de la otra plaza</button>
+        </div>
+        <div id="cat-list"></div>
+      </div>
+    </section>
+
+    <!-- CLIENTES -->
+    <section class="tab" id="tab-clientes">
+      <div class="card">
+        <h3>Clientes <small id="cli-plaza"></small></h3>
+        <div class="searchbar"><input type="text" id="q-cli" placeholder="Buscar cliente…" oninput="renderClientes()"></div>
+        <div class="row-btns" style="margin:0 0 8px;"><button class="btn btn-sky" onclick="openCliente()">Nuevo cliente</button></div>
+        <div id="cli-list"></div>
+      </div>
+    </section>
+
+    <!-- PRODUCCIÓN -->
+    <section class="tab" id="tab-produccion">
+      <div class="card">
+        <h3>Plan de producción <small id="prod-plaza"></small></h3>
+        <p class="mut small" style="margin-bottom:12px;">Propone qué producir según el stock y el mínimo de cada sabor (objetivo: el doble del mínimo).</p>
+        <div class="grid2">
+          <div class="field"><label for="prod-n">Sabores a producir</label><input type="number" id="prod-n" min="1" value="5" inputmode="numeric" oninput="renderProduccion()"></div>
+          <div class="field"><label for="prod-molde">Piezas por molde</label><input type="number" id="prod-molde" readonly title="Se cambia en Configuración"></div>
+        </div>
+        <div id="prod-resumen"></div>
+        <div style="margin-top:12px;" id="prod-list"></div>
+        <div class="row-btns" style="margin-top:12px;"><button class="btn btn-line" onclick="pdfProduccion()">PDF del plan</button></div>
+      </div>
+    </section>
+
+    <!-- REPORTES -->
+    <section class="tab" id="tab-reporte">
+      <div class="card">
+        <h3>Reportes de ventas</h3>
+        <p class="mut small" style="margin-bottom:10px;">Solo cuentan los pedidos en estado <b>Entregado</b>.</p>
+        <div class="searchbar">
+          <div class="field" style="margin:0;"><label for="r-ini">Desde</label><input type="date" id="r-ini" onchange="renderReporte()"></div>
+          <div class="field" style="margin:0;"><label for="r-fin">Hasta</label><input type="date" id="r-fin" onchange="renderReporte()"></div>
+          <div class="field admin-only" style="margin:0;"><label for="r-plaza">Plaza</label><select id="r-plaza" onchange="renderReporte()"></select></div>
+        </div>
+        <div class="row-btns" style="margin:0 0 12px;">
+          <button class="btn btn-line btn-sm" onclick="setRango('hoy')">Hoy</button>
+          <button class="btn btn-line btn-sm" onclick="setRango('semana')">Esta semana</button>
+          <button class="btn btn-line btn-sm" onclick="setRango('mes')">Este mes</button>
+          <button class="btn btn-line btn-sm" onclick="setRango('todo')">Todo</button>
+          <button class="btn btn-sky btn-sm" onclick="pdfReporte()">PDF</button>
+        </div>
+        <div id="r-stats"></div>
+        <canvas id="chart-ventas" hidden style="margin-bottom:14px;"></canvas>
+        <canvas id="chart-sabores" hidden></canvas>
+        <div id="r-clientes"></div>
+        <div id="r-detalle"></div>
+      </div>
+    </section>
+
+    <!-- BITÁCORA -->
+    <section class="tab" id="tab-bitacora">
+      <div class="card">
+        <h3>Bitácora <small id="bit-plaza"></small></h3>
+        <div class="searchbar">
+          <div class="field" style="margin:0;"><label for="b-ini">Desde</label><input type="date" id="b-ini" onchange="renderBitacora()"></div>
+          <div class="field" style="margin:0;"><label for="b-fin">Hasta</label><input type="date" id="b-fin" onchange="renderBitacora()"></div>
+          <div class="field" style="margin:0;"><label for="q-bit">Buscar</label><input type="text" id="q-bit" placeholder="Acción, usuario…" oninput="renderBitacora()"></div>
+        </div>
+        <div id="bit-list"></div>
+      </div>
+    </section>
+
+    <!-- USUARIOS -->
+    <section class="tab" id="tab-usuarios">
+      <div class="grid2" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px;">
+        <div class="stat"><b id="u-admins">0</b><span>Admins</span></div>
+        <div class="stat"><b id="u-emps">0</b><span>Empleados</span></div>
+        <div class="stat"><b id="u-total">0</b><span>Activos</span></div>
+      </div>
+      <div class="card">
+        <h3>Usuarios</h3>
+        <div class="note">Para dar de alta a alguien: primero créalo en Firebase → Authentication → Users, copia su UID y regístralo aquí.</div>
+        <div class="row-btns" style="margin:0 0 8px;"><button class="btn btn-sky" onclick="openUsuario()">Registrar usuario</button></div>
+        <div id="u-list"></div>
+      </div>
+      <div class="card"><h3>Dados de baja</h3><div id="u-baja"></div></div>
+    </section>
+
+    <!-- CONFIGURACIÓN -->
+    <section class="tab" id="tab-config">
+      <div class="card">
+        <h3>Logo de la marca</h3>
+        <p class="mut small" style="margin-bottom:12px;">Se usa en el inicio de sesión, el encabezado y los PDF. Puedes cambiarlo cuando quieras (por ejemplo, por temporada).</p>
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+          <div id="cfg-logo-prev"></div>
+          <div class="row-btns" style="margin:0;">
+            <label class="btn btn-sky" style="cursor:pointer;">Subir logo<input type="file" accept="image/*" hidden onchange="subirLogo(this.files[0]);this.value=''"></label>
+            <button class="btn btn-line" onclick="quitarLogo()">Quitar logo</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Esquemas de mayoreo <small id="cfg-plaza-esq"></small></h3>
+        <p class="mut small" style="margin-bottom:12px;">Cada plaza tiene sus propios esquemas. Cambia las cantidades mínimas, agrega o quita esquemas. El primero es el pedido mínimo. Después de cambiarlos, revisa en el Catálogo que cada sabor tenga precio en todos los esquemas.</p>
+        <div id="esq-editor"></div>
+        <div class="row-btns">
+          <button class="btn btn-line" onclick="esqAgregar()">Agregar esquema</button>
+          <button class="btn btn-line" onclick="esqRestablecer()">Restablecer (50 / 100 / 250)</button>
+        </div>
+        <div class="row-btns">
+          <button class="btn btn-sky" onclick="esqGuardar()">Guardar esquemas</button>
+          <button class="btn btn-line" onclick="esqCopiar()">Copiar a la otra plaza</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Opciones de la plaza <small id="cfg-plaza-opt"></small></h3>
+        <div class="field"><label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:.9rem;letter-spacing:0;color:var(--txt);"><input type="checkbox" id="opt-stock"> Controlar existencias al tomar pedidos (no permitir vender más de lo que hay)</label></div>
+        <div class="field" style="max-width:220px;"><label for="opt-molde">Piezas por molde</label><input type="number" id="opt-molde" min="1" inputmode="numeric"></div>
+        <button class="btn btn-sky" onclick="guardarOpciones()">Guardar opciones</button>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ============ MODALES ============ -->
+<div class="modal-bg" id="m-pedido"><div class="modal">
+  <h3 id="m-pedido-t"></h3>
+  <div id="m-pedido-b"></div>
+  <div class="actions" id="m-pedido-a"></div>
+</div></div>
+
+<div class="modal-bg" id="m-mod"><div class="modal">
+  <h3>Modificar pedido</h3>
+  <div id="m-mod-b"></div>
+  <div class="actions">
+    <button class="btn btn-line" onclick="closeModal('m-mod')">Cancelar</button>
+    <button class="btn btn-sky" onclick="guardarMod()">Guardar cambios</button>
+  </div>
+</div></div>
+
+<div class="modal-bg" id="m-inv"><div class="modal">
+  <h3 id="m-inv-t"></h3>
+  <p class="mut small" style="margin-bottom:12px;">Existencia actual: <b id="m-inv-act"></b></p>
+  <input type="hidden" id="mi-id">
+  <div class="field"><label for="mi-acc">Movimiento</label>
+    <select id="mi-acc"><option value="agregar">Agregar piezas</option><option value="quitar">Quitar piezas</option><option value="set">Fijar existencia exacta</option></select></div>
+  <div class="grid2">
+    <div class="field"><label for="mi-cant">Cantidad</label><input type="number" id="mi-cant" min="0" inputmode="numeric" placeholder="Dejar vacío para solo cambiar el mínimo"></div>
+    <div class="field"><label for="mi-min">Stock mínimo</label><input type="number" id="mi-min" min="0" inputmode="numeric"></div>
+  </div>
+  <div class="field"><label for="mi-motivo">Motivo (opcional)</label><input type="text" id="mi-motivo" placeholder="Producción del día, merma, ajuste…"></div>
+  <div class="actions">
+    <button class="btn btn-line" onclick="closeModal('m-inv')">Cancelar</button>
+    <button class="btn btn-sky" onclick="guardarInv()">Guardar</button>
+  </div>
+</div></div>
+
+<div class="modal-bg" id="m-hist"><div class="modal">
+  <h3 id="m-hist-t"></h3>
+  <div id="m-hist-b"></div>
+  <div class="actions"><button class="btn btn-line" onclick="closeModal('m-hist')">Cerrar</button></div>
+</div></div>
+
+<div class="modal-bg" id="m-sabor"><div class="modal">
+  <h3 id="m-sabor-t">Nuevo sabor</h3>
+  <input type="hidden" id="ms-id">
+  <div class="field"><label for="ms-nombre">Nombre *</label><input type="text" id="ms-nombre" autocomplete="off"></div>
+  <div class="field"><label for="ms-tag">Etiqueta</label>
+    <select id="ms-tag"><option value="">Ninguna</option><option value="nuevo">Nuevo</option><option value="temporada">Temporada</option></select></div>
+  <div class="field"><label>Precio de mayoreo por esquema</label><div id="ms-precios"></div></div>
+  <div class="actions">
+    <button class="btn btn-line" onclick="closeModal('m-sabor')">Cancelar</button>
+    <button class="btn btn-sky" onclick="guardarSabor()">Guardar</button>
+  </div>
+</div></div>
+
+<div class="modal-bg" id="m-cliente"><div class="modal">
+  <h3 id="m-cli-t">Nuevo cliente</h3>
+  <input type="hidden" id="mc-id">
+  <div class="field"><label for="mc-nombre">Nombre *</label><input type="text" id="mc-nombre" autocomplete="off"></div>
+  <div class="field"><label for="mc-tel">Teléfono</label><input type="tel" id="mc-tel" inputmode="tel"></div>
+  <div class="field"><label for="mc-desc">Descuento por pieza ($, opcional)</label><input type="number" id="mc-desc" min="0" step="0.5" inputmode="decimal" placeholder="0"></div>
+  <div class="actions">
+    <button class="btn btn-line" onclick="closeModal('m-cliente')">Cancelar</button>
+    <button class="btn btn-sky" onclick="guardarCliente()">Guardar</button>
+  </div>
+</div></div>
+
+<div class="modal-bg" id="m-usuario"><div class="modal">
+  <h3 id="m-usr-t">Registrar usuario</h3>
+  <input type="hidden" id="mu-edit">
+  <div class="field"><label for="mu-uid">UID de Firebase Auth *</label><input type="text" id="mu-uid" autocomplete="off" placeholder="Pega aquí el UID"></div>
+  <div class="field"><label for="mu-nombre">Nombre *</label><input type="text" id="mu-nombre" autocomplete="off"></div>
+  <div class="field"><label for="mu-email">Correo *</label><input type="email" id="mu-email" autocomplete="off"></div>
+  <div class="field"><label for="mu-rol">Rol</label>
+    <select id="mu-rol" onchange="toggleUsrCampos()"><option value="empleado">Empleado</option><option value="admin">Administrador</option></select></div>
+  <div class="field" id="mu-plaza-w"><label for="mu-plaza">Plaza asignada</label>
+    <select id="mu-plaza"><option value="">Ambas plazas</option><option value="puebla">Solo Puebla</option><option value="acapulco">Solo Acapulco</option></select></div>
+  <div class="field" id="mu-perm-w"><label>Permisos del empleado</label>
+    <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:.9rem;color:var(--txt);"><input type="checkbox" id="pm-pedidos"> Pedidos y clientes</label>
+    <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:.9rem;color:var(--txt);"><input type="checkbox" id="pm-inventario"> Inventario</label>
+    <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:.9rem;color:var(--txt);"><input type="checkbox" id="pm-catalogo"> Catálogo de sabores</label>
+    <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:.9rem;color:var(--txt);"><input type="checkbox" id="pm-produccion"> Producción</label>
+    <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:.9rem;color:var(--txt);"><input type="checkbox" id="pm-reportes"> Reportes</label>
+  </div>
+  <div class="actions">
+    <button class="btn btn-line" onclick="closeModal('m-usuario')">Cancelar</button>
+    <button class="btn btn-sky" onclick="guardarUsuario()">Guardar</button>
+  </div>
+</div></div>
+
+<div class="modal-bg" id="confirm-bg"><div class="modal" style="max-width:380px;">
+  <h3 id="cf-t"></h3>
+  <p id="cf-m" style="margin-bottom:14px;"></p>
+  <div class="field" id="cf-typed-w" hidden><label id="cf-typed-l" for="cf-typed"></label><input type="text" id="cf-typed" autocomplete="off"></div>
+  <div class="actions">
+    <button class="btn btn-line" onclick="closeConfirm()">Cancelar</button>
+    <button class="btn" id="cf-ok">Confirmar</button>
+  </div>
+</div></div>
+
+<div id="toast"></div>
+
+<script src="core.js"></script>
+<script src="pedidos.js"></script>
+<script src="inventario.js"></script>
+<script src="catalogo.js"></script>
+<script src="reportes.js"></script>
+<script src="admin.js"></script>
+<script src="boot.js"></script>
+</body>
+</html>
